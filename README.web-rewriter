@@ -1,0 +1,160 @@
+WEB-REWRITER(1)       User Contributed Perl Documentation      WEB-REWRITER(1)
+
+
+
+NNAAMMEE
+       web-rewriter.pl - massive virtual hosting with apache mod-rewrite.
+
+DDEESSCCRRIIPPTTIIOONN
+       web-rewriter allows to add and remove virtual hosts without changing a
+       single line of apache configuration, and without restarting or
+       reloading apache. It works with any version of apache from 1.3, and is
+       similar in purpose to mod_vhost_alias.
+
+       Once configured, any request received by apache will be passed to web-
+       rewriter which will take care of remapping it to a physical directory
+       on your server for a specific virtual host.
+
+   SSiimmppllee ccoonnffiigguurraattiioonn
+       You configure web-rewriter by:
+
+       1. Editing the script. You need to specify a root directory in cfg_dir,
+       for example '/opt/sites'. You also need to specify a default web site
+       in cfg_default, for example 'mysite.com'. Optionally, you can also
+       specify cfg_uid and cfg_gid.
+       2. Change the configuration of apache as described below.
+
+   SSaammppllee bbeehhaavviioorr
+       What happens next is more easily described by example than by
+       explaining it.  If your web server receives a request for...
+
+       www.testsite.com/test.html
+         web-rewriter will direct apache to load
+         /opt/sites/testiste.com/http/test.html.  Same if the request was for
+         testsite.com (instead of www.test...)
+
+       1.2.3.4/test.html
+         web-rewriter will direct apache to load
+         /opt/sites/1.2.3.4/http/test.html. The usual way to handle IP
+         addresses is to create a symlink to the site you'd like displayed
+         when users access the naked IP address.
+
+       test.mysite.com/fuffa.html
+         web-rewriter will direct apache to load
+         /opt/sites/mysite.com/sub/test/http/fuffa.html.
+
+       my.own.site.mysite.com/fuffa.html
+         As above, directing apache to load
+         /opt/sites/mysite.com/sub/site/sub/own/sub/my/http/fuffa.html.
+
+       Some tricks can be played by using symlinks, and by providing 404
+       handlers.
+
+   NNootteess
+       This allows for:
+
+       1. Owners of domains to freely create and manage subdomains.
+       2. Adding a virtual host just means creating a new directory in
+       /opt/sites.
+
+       Note that these directories can be easily created by using a database
+       and by configuring PAM to use LDAP or MySQL authentication and to
+       create the directory the first time the user tries to upload the web
+       pages via ssh / scp / sftp.
+
+       Note also that web-rewriter tries to be as conservative as possible by
+       rejecting hosts that look invalid (example: containing ../ or similar)
+       and returning a default whenever a suspicious configuration is
+       received.
+
+CCOONNFFIIGGUURRAATTIIOONN
+       0. Edit web-rewriter.pl. In particular:
+         Change _c_f_g___d_i_r to point to the directory where you plan to keep all
+         virtual hosts. For example, /opt/sites.
+
+         Change _c_f_g___d_e_f_a_u_l_t to have the name of the site you want loaded in
+         case of errors.
+
+         Change _c_f_g___u_i_d and _c_f_g___g_i_d to point to the uid and gid used by
+         nobody. This script really needs no privileges on your system.
+
+       1. Enable mod-rewrite in apache
+         On Debian based systems, run:
+
+             a2enmod rewrite
+
+         On other systems, add something like:
+
+         LoadModule rewrite_module /usr/lib/apache2/modules/mod_rewrite.so
+
+         to your httpd.conf, and restart apache with:
+
+           apachectl restart
+
+       2. Configure web-rewriter in apache.
+         Add the following parameters in the httpd.conf file:
+
+           RewriteEngine On
+           RewriteMap web-rewriter prg:/opt/scripts/web-rewriter.pl
+
+           # This rewrite rule has to be last, see below.
+           RewriteRule ^/(.*)$ /${web-rewriter:%{REMOTE_ADDR}\ %{SERVER_ADDR}\ %{HTTP_HOST}}/http/$1 [E=TRANS_HOST:%1]
+
+         Note that /opt/scripts/ has to be changed with the path where you
+         installed the web-rewriter script.
+
+         Let's also say you provide an admin interface for each virtual host,
+         and this admin interface is reachable by going to:
+
+           www.any-virtual-host-1.com/admin/
+           www.any-virtual-host-2.com/admin/
+           www.....com/admin/
+
+         You can easily configure rewrite exceptions by adding a line like
+         this one before the RewriteRule with web-rewriter:
+
+           RewriteCond %{REQUEST_URI} !^/admin/.*$
+
+         Let's also say you allow virtual hosts to have cgi-bin scripts
+         outside the web root, you can add a rule like:
+
+           RewriteRule (.*)/http/cgi-bin/(.*)$ $1/cgi-bin/$2
+
+HHIIEERRAARRCCHHYY
+       A typical configuration has:
+
+       /opt/sites/mysite.com/http/
+         Static / dynamic web pages, html files.
+
+       /opt/sites/mysite.com/cgi-bin/
+         Scripts, cgi-bin.
+
+       /opt/sites/mysite.com/sub/test/
+         Same hierarchy as described above, sub/test/http/, sub/test/cgi-bin/,
+         ... for the 'test' subdomain.
+
+       If you use php or have other dynamic content, we also suggest to
+       provide:
+
+       /opt/sites/mysite.com/lib
+         Libraries, generally not containing any html or code that should be
+         directly exposed to the user.  Files here are only imported /
+         included by other scripts.
+
+       /opt/sites/mysite.com/data
+         This is the only directory where apache can write in every virtual
+         host. This directory is also not accessible directly by end users.
+         There is generally no good reason to allow arbitrary uploads that are
+         exposed directly to the user, and it is good practice to enforce the
+         policy by using unix privileges.
+
+DDEEBBUUGGGGIINNGG
+       An easy way to debug mod-rewrite is to enable debugging, something like
+       this will help:
+
+         RewriteLog /var/log/apache2/rewrite.log
+         RewriteLogLevel 3
+
+
+
+perl v5.14.2                      2013-02-10                   WEB-REWRITER(1)
