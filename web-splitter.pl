@@ -1,15 +1,13 @@
 #!/usr/bin/perl -w
 
-  # Copyright (C) 2002,2003,2004,2005,2006 Carlo Contavalli - This software is GPL
-  # Almost completely rewritten the parsing code. Should be faster, and
-  # more reliable than originally (2006). It now drop privileges at
-  # startup, and is more strict in accepting host names. 
-  # All the regular expressions should now be much more stricter
-  # than they used to be;
 
-  # Should be used with something like:
-  #   LogFormat "%V %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
-  #   CustomLog "/var/log/apache2/access.log" vcombined
+# Copyright (C) Carlo Contavalli - 2002-2013
+# This script is free software, please refer to the LICENSE file for
+# terms and conditions.
+#
+# Should be used with something like:
+#   LogFormat "%V %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
+#   CustomLog "/var/log/apache2/access.log" vcombined
 
 use strict;
 use Sys::Syslog;

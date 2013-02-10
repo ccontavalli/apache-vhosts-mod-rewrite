@@ -1,9 +1,8 @@
 #!/usr/bin/perl -w
 
-# Copyright Carlo Contavalli - 2002-2003
-#
-# Thu May 16 16:52:35 CEST 2002 -- Carlo
-# 	Handles url rewriting for virtual domains
+# Copyright (C) Carlo Contavalli - 2002-2013
+# This script is free software, please refer to the LICENSE file for
+# terms and conditions.
 
 use strict;
 use Sys::Syslog;
