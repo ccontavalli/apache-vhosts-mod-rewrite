@@ -9,18 +9,9 @@ use strict;
 use Sys::Syslog;
 use POSIX;
 
-
 my ($cfg_uid, $cfg_gid) = (65534, 65534);
 my ($cfg_debug, $cfg_dir) = (0, '/opt/http');
-
-  # Warning: changing this to a different value will
-  #   break the pigeonair.net site.. there is a bug
-  #   in mod-xslt, for apache-1.3 sub requests, where
-  #   mod-rewrite does not handle them correctly and looks
-  #   to the client headers to decide what to  do....
-  #   instead of using the already parsed data
-my ($cfg_default)=("www.pigeonair.net");
-
+my ($cfg_default) = ("www.pigeonair.net");
 
   # Open log file ...
 openlog('apache-rewriter', 'pid', 'daemon');
