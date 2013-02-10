@@ -178,6 +178,8 @@ also not accessible directly by end users. There is generally no good reason to 
 uploads that are exposed directly to the user, and it is good practice to enforce the policy
 by using unix privileges.
 
+=back
+
 =head1 DEBUGGING
 
 An easy way to debug mod-rewrite is to enable debugging, something
