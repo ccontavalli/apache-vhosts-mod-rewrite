@@ -4,22 +4,88 @@
 # Copyright (C) Carlo Contavalli - 2002-2013
 # This script is free software, please refer to the LICENSE file for
 # terms and conditions.
-#
-# Should be used with something like:
-#   LogFormat "%V %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
-#   CustomLog "/var/log/apache2/access.log" vcombined
+
+=head1 NAME
+
+web-splitter.pl - splits apache logs per virtual host.
+
+=head1 DESCRIPTION
+
+web-splitter reads log lines from apache in standard input, and splits
+the logs in multiple files. It creates a hierarchy based on day, month,
+year and the virtual host the log line belongs to.
+
+It is meant to be used in conjunction with web-rewriter.pl, and allows
+to configure a single CustomLog directive for the whole apache installation
+while still splitting the log files per virtual host.
+
+The script tries to be smart in not opening too many file descriptors
+while keeping the most frequently used ones open with buffering.
+
+It is similar in purpose to cronolog, http://www.cronolog.org, the main
+difference is related to having less configurable options, and integration
+with web-rewriter or massive virtual hosting solutions.
+
+=head1 CONFIGURATION
+
+In apache, you need to:
+
+=over 2
+
+=item 1. Have mod_log_config enabled in apache.
+
+On most distributions this is compiled into the apache binary already, so nothing to do.
+You can verify by using 'apache2 -l' and checking the presence of 'mod_log_config' in
+the output.
+
+=item 2. Configure logging in apache.
+
+The default in apache is generally:
+
+    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+
+Adding a line like this one will be sufficient:
+
+    LogFormat "B<%V> %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
+
+But it's generally better to use:
+
+    LogFormat "B<%V> %h %l %u B<%{[%d/%m/%Y:%H:%M:%S %z]}t> \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
+
+The problem is the %t, which changes depending on the locale being used. For example,
+with the default %t months are expressed as a 3 letter string, which means that if your linux
+system is configured to use the IT locale, January may end up as Gen instead of Jan in your
+log file, and day and month may end up inverted.
+
+By modifying %t as described above, months are expressed as a number (%m instead of %b), and
+the order is well defined.
+
+=item 3. Send your logs to web-splitter.
+
+To do so, you just need a line like:
+
+  CustomLog "|/opt/scripts/web-splitter.pl" vcombined
+
+in your apache configuration files. Note that for debugging and backup purposes, and
+to still have an aggregated log file to feed to tools like analog, it is handy to
+keep a single log file somewhere, which means I generally keep a line like:
+
+  CustomLog "/var/log/apache2/access.log" vcombined
+
+=back
+
+=cut
 
 use strict;
 use Sys::Syslog;
 use POSIX;
 
-
   # cfg_logdir: directory where logs are kept
-  # cfg_maxfd: maximum number of file descriptor to keep open at a given time
+  # cfg_maxfd: maximum number of file descriptors to keep open at a given time
   # cfg_prefix: prefix to use for created log files
 my ($cfg_logdir, $cfg_maxfd, $cfg_prefix) = ('/opt/log', 32, 'web-');
-  # cfg_uid: userid to change to, while dropping root privileges
-  # cfg_gid: group to change to, while dropping root privileges
+  # cfg_uid: userid to use to write logs.
+  # cfg_gid: group to use to write logs.
 my ($cfg_uid, $cfg_gid, $cfg_dir) = (105, 4, '/opt/log');
 
 openlog('apache-logger', 'pid', 'daemon');
