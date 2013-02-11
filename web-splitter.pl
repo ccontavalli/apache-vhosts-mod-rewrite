@@ -41,7 +41,15 @@ I<cfg_logdir>: Set this to the directory where you want your logs to be kept.
 I<cfg_maxfd>: How many file descriptors (log files) to keep open at most at
 the same time.
 
-I<cfg_prefix>: A prefix to give to each log file.
+I<cfg_prefix>: A prefix to give to each log file. For example, a web- prefix
+means that the log file will be called whatever/directory/web-mysite.com.
+
+I<cfg_suffix>: A suffix to give to each log file. For example, a .log suffix 
+means that the log file will be called whatever/directory/web-mysite.com.log.
+
+I<cfg_template>: How to name the log files. It generally looks something like:
+'$year/$month/$day/$cfg_prefix$site$cfg_suffix' (note the single quotes, they
+are important!).
 
 I<cfg_uid, cfg_gid>: The uid and gid this script should run as. Do not use
 root (0)! The privileges of the log directory should be set such as this user
@@ -103,10 +111,19 @@ use POSIX;
   # cfg_logdir: directory where logs are kept
   # cfg_maxfd: maximum number of file descriptors to keep open at a given time
   # cfg_prefix: prefix to use for created log files
-my ($cfg_logdir, $cfg_maxfd, $cfg_prefix) = ('/opt/log', 32, 'web-');
+  # cfg_suffix: suffix to add to the log files
+my ($cfg_logdir, $cfg_maxfd, $cfg_prefix, $cfg_suffix)
+    = ('/opt/sites', 32, 'web-', '.log');
   # cfg_uid: userid to use to write logs.
   # cfg_gid: group to use to write logs.
 my ($cfg_uid, $cfg_gid, $cfg_dir) = (105, 4, $cfg_logdir);
+
+  # Example template to keep all the logs for all virtual hosts in the same
+  # location.
+#my ($cfg_template) = ('$year/$month/$day/$cfg_prefix$site$cfg_suffix');
+
+  # Keeps all the logs in a per site directory.
+my ($cfg_template) = ('$site/logs/$year/$month/$day/$cfg_prefix$site$cfg_suffix');
 
 openlog('apache-logger', 'pid', 'daemon');
 
@@ -116,6 +133,13 @@ chdir($cfg_dir) or syslog('warning', "chdir to $cfg_dir failed - $!\n");
 
 my (%fdcache, @fdindex, $fd);
 
+  # Implements a simple probabilistic LFU. A newly opened log file is added
+  # at the bottom of the list of opened files. Every time it is accessed,
+  # it has some probability to move one position up. Most frequently accessed
+  # sites will eventually end up at the top of the list. Note that the
+  # probability has to take into account the fact that virtual hosts are
+  # likely to receive requests in bursts (eg, index.html and all the images,
+  # csses, jses, ... referred by it).
 sub getfd($) {
   my ($file) = @_;
   my ($tmp);
@@ -169,9 +193,10 @@ sub getfd($) {
   #print "Cached: $file, size fdcache: " . keys(%fdcache) . ", prev-position: " . ${$fdcache{$file}}[2] . 
   #	" chances: 1/" . (($#fdindex+1) - ${$fdcache{$file}}[2]) . "\n";
 
-    # Entry was in cache, increase it position
+    # Entry was in cache, increase its position
     # (unless it already is the first one)
-  if(${$fdcache{$file}}[2] > 0 && int(rand(($#fdindex+1)-${$fdcache{$file}}[2])) == 0) {
+  if(${$fdcache{$file}}[2] > 0 &&
+     int(rand(($#fdindex+1)-${$fdcache{$file}}[2])) == 0) {
     #print "Switching: " . $file . " with " . ${$fdindex[(${$fdcache{$file}}[2])-1]}[0] . "\n";
 
       # next element = prev element
@@ -223,12 +248,22 @@ while(<>) {
     $month = $map{$3};
   }
 
-  my ($file) = $year . '/' . $month . '/' . $day . '/' . $cfg_prefix . lc($site);
-
-  if($1 !~ /^[a-zA-Z0-9_-]+[a-zA-Z0-9_.-]*$/o) {
-    syslog('warning', "ignoring to write entry for host $site - does not match regular expression\n");
+  $site = lc($site);
+  if($site !~ /^[a-zA-Z0-9_-]+[a-zA-Z0-9_.-]*$/o || $site =~ /\.\./o) {
+    syslog('warning', "ignoring to write entry for host $site - does not pass validation\n");
     next;
   }
+
+    # Safe & ugly way to perform configurable string interpolation.
+  my %replacements = (
+      site => $site,
+      year => $year,
+      month => $month,
+      day => $day,
+      cfg_prefix => $cfg_prefix,
+      cfg_suffix => $cfg_suffix);
+  my ($file) = $cfg_template;
+  $file =~ s/\$(\w+)/$replacements{$1}/g;
 
 #  print {getfd($file)} (/[^ ]+ (.*)/)[0] . "\n" or 
   $fd=getfd($file) or next;
