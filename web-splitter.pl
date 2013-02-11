@@ -32,6 +32,26 @@ In apache, you need to:
 
 =over 2
 
+=item 0. Edit web-splitter.pl to have the configuration you need.
+
+The parameters you care about are:
+
+I<cfg_logdir>: Set this to the directory where you want your logs to be kept.
+
+I<cfg_maxfd>: How many file descriptors (log files) to keep open at most at
+the same time.
+
+I<cfg_prefix>: A prefix to give to each log file.
+
+I<cfg_uid, cfg_gid>: The uid and gid this script should run as. Do not use
+root (0)! The privileges of the log directory should be set such as this user
+(and this user only!) can write to that directory. If untrusted users can write
+in the log directories, they can create symlinks or similar to overwrite
+arbitrary files on your system!  So, be careful.
+
+I<cfg_dir>: The working directory of this script. You don't normally
+need to worry about this parameter.
+
 =item 1. Have mod_log_config enabled in apache.
 
 On most distributions this is compiled into the apache binary already, so nothing to do.
@@ -86,7 +106,7 @@ use POSIX;
 my ($cfg_logdir, $cfg_maxfd, $cfg_prefix) = ('/opt/log', 32, 'web-');
   # cfg_uid: userid to use to write logs.
   # cfg_gid: group to use to write logs.
-my ($cfg_uid, $cfg_gid, $cfg_dir) = (105, 4, '/opt/log');
+my ($cfg_uid, $cfg_gid, $cfg_dir) = (105, 4, $cfg_logdir);
 
 openlog('apache-logger', 'pid', 'daemon');
 
