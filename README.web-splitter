@@ -2,10 +2,10 @@ WEB-SPLITTER(1)       User Contributed Perl Documentation      WEB-SPLITTER(1)
 
 
 
-NNAAMMEE
+NAME
        web-splitter.pl - splits apache logs per virtual host.
 
-DDEESSCCRRIIPPTTIIOONN
+DESCRIPTION
        web-splitter reads log lines from apache in standard input, and splits
        the logs in multiple files. It creates a hierarchy based on day, month,
        year and the virtual host the log line belongs to.
@@ -21,69 +21,69 @@ DDEESSCCRRIIPPTTIIOONN
        difference is related to having less configurable options, and
        integration with web-rewriter or massive virtual hosting solutions.
 
-CCOONNFFIIGGUURRAATTIIOONN
+CONFIGURATION
        In apache, you need to:
 
        0. Edit web-splitter.pl to have the configuration you need.
-         The parameters you care about are:
+	 The parameters you care about are:
 
-         _c_f_g___l_o_g_d_i_r: Set this to the directory where you want your logs to be
-         kept.
+	 cfg_logdir: Set this to the directory where you want your logs to be
+	 kept.
 
-         _c_f_g___m_a_x_f_d: How many file descriptors (log files) to keep open at most
-         at the same time.
+	 cfg_maxfd: How many file descriptors (log files) to keep open at most
+	 at the same time.
 
-         _c_f_g___p_r_e_f_i_x: A prefix to give to each log file.
+	 cfg_prefix: A prefix to give to each log file.
 
-         _c_f_g___u_i_d_, _c_f_g___g_i_d: The uid and gid this script should run as. Do not
-         use root (0)! The privileges of the log directory should be set such
-         as this user (and this user only!) can write to that directory. If
-         untrusted users can write in the log directories, they can create
-         symlinks or similar to overwrite arbitrary files on your system!  So,
-         be careful.
+	 cfg_uid, cfg_gid: The uid and gid this script should run as. Do not
+	 use root (0)! The privileges of the log directory should be set such
+	 as this user (and this user only!) can write to that directory. If
+	 untrusted users can write in the log directories, they can create
+	 symlinks or similar to overwrite arbitrary files on your system!  So,
+	 be careful.
 
-         _c_f_g___d_i_r: The working directory of this script. You don't normally
-         need to worry about this parameter.
+	 cfg_dir: The working directory of this script. You don't normally
+	 need to worry about this parameter.
 
        1. Have mod_log_config enabled in apache.
-         On most distributions this is compiled into the apache binary
-         already, so nothing to do.  You can verify by using 'apache2 -l' and
-         checking the presence of 'mod_log_config' in the output.
+	 On most distributions this is compiled into the apache binary
+	 already, so nothing to do.  You can verify by using 'apache2 -l' and
+	 checking the presence of 'mod_log_config' in the output.
 
        2. Configure logging in apache.
-         The default in apache is generally:
+	 The default in apache is generally:
 
-             LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+	     LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
 
-         Adding a line like this one will be sufficient:
+	 Adding a line like this one will be sufficient:
 
-             LogFormat "B<%V> %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
+	     LogFormat "B<%V> %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
 
-         But it's generally better to use:
+	 But it's generally better to use:
 
-             LogFormat "B<%V> %h %l %u B<%{[%d/%m/%Y:%H:%M:%S %z]}t> \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
+	     LogFormat "B<%V> %h %l %u B<%{[%d/%m/%Y:%H:%M:%S %z]}t> \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" vcombined
 
-         The problem is the %t, which changes depending on the locale being
-         used. For example, with the default %t months are expressed as a 3
-         letter string, which means that if your linux system is configured to
-         use the IT locale, January may end up as Gen instead of Jan in your
-         log file, and day and month may end up inverted.
+	 The problem is the %t, which changes depending on the locale being
+	 used. For example, with the default %t months are expressed as a 3
+	 letter string, which means that if your linux system is configured to
+	 use the IT locale, January may end up as Gen instead of Jan in your
+	 log file, and day and month may end up inverted.
 
-         By modifying %t as described above, months are expressed as a number
-         (%m instead of %b), and the order is well defined.
+	 By modifying %t as described above, months are expressed as a number
+	 (%m instead of %b), and the order is well defined.
 
        3. Send your logs to web-splitter.
-         To do so, you just need a line like:
+	 To do so, you just need a line like:
 
-           CustomLog "|/opt/scripts/web-splitter.pl" vcombined
+	   CustomLog "|/opt/scripts/web-splitter.pl" vcombined
 
-         in your apache configuration files. Note that for debugging and
-         backup purposes, and to still have an aggregated log file to feed to
-         tools like analog, it is handy to keep a single log file somewhere,
-         which means I generally keep a line like:
+	 in your apache configuration files. Note that for debugging and
+	 backup purposes, and to still have an aggregated log file to feed to
+	 tools like analog, it is handy to keep a single log file somewhere,
+	 which means I generally keep a line like:
 
-           CustomLog "/var/log/apache2/access.log" vcombined
+	   CustomLog "/var/log/apache2/access.log" vcombined
 
 
 
-perl v5.14.2                      2013-02-11                   WEB-SPLITTER(1)
+perl v5.14.2			  2013-02-11		       WEB-SPLITTER(1)
