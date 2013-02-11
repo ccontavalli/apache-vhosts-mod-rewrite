@@ -146,7 +146,10 @@ sub getfd($) {
         $tmp = $tmp . "$_/";
 	mkdir "$tmp";
       }
-      open($array[1], ">>$cfg_logdir/$file") or syslog('warning', "couldn't open file for writing $cfg_logdir/$file - $!.\n");
+      if (!open($array[1], ">>$cfg_logdir/$file")) {
+        syslog('warning', "couldn't open file for writing $cfg_logdir/$file - $!.\n");
+        return;
+      }
     };
 
       # Disable buffering in case of failure
@@ -203,25 +206,32 @@ my %map = (
 while(<>) {
   s/^www\.//i;
 
-  if(!/^([^ ]+) [^ ]+ [^ ]+ [^ ]+ \[([0-9][0-9])\/([A-Z][a-z]+)\/([0-9][0-9][0-9][0-9])/o) {
-    syslog('warning', "skipping bogous line: $_");
+  if(!/^([^ ]+) [^ ]+ [^ ]+ [^ ]+ \[([0-9][0-9])\/([A-Z0-9][a-z0-9]+)\/([0-9][0-9][0-9][0-9])/o) {
+    syslog('warning', "skipping bogous log line: $_");
     next;
   }
 
-  if(!$map{$3}) {
-    syslog('warning', "unknown month: '$3' - cannot map it back to number\n");
-    next;
+  my ($year, $month, $day, $site) = ($4, $3, $2, $1);
+
+  if ($month =~ /^([0-9]+)$/) {
+    $month = $1;
+  } else {
+    if(!$map{$3}) {
+      syslog('warning', "unknown month: '$3' - cannot map it back to number\n");
+      next;
+    }
+    $month = $map{$3};
   }
 
-  my ($file) = $4 . '/' . $map{$3} . '/' . $2 . '/' . $cfg_prefix . lc($1);
+  my ($file) = $year . '/' . $month . '/' . $day . '/' . $cfg_prefix . lc($site);
 
   if($1 !~ /^[a-zA-Z0-9_-]+[a-zA-Z0-9_.-]*$/o) {
-    syslog('warning', "ignoring to write entry for host $1 - does not match regular expression\n");
+    syslog('warning', "ignoring to write entry for host $site - does not match regular expression\n");
     next;
   }
 
 #  print {getfd($file)} (/[^ ]+ (.*)/)[0] . "\n" or 
-  $fd=getfd($file);
+  $fd=getfd($file) or next;
   print $fd (/[^ ]+ (.*)/)[0] . "\n" or
     syslog('warning', "error while writing '$file' - $!\n");
 #  print STDOUT $file . ' ' . (/[^ ]+ (.*)/)[0] . "\n" or die("Couldn't write on file: ");
