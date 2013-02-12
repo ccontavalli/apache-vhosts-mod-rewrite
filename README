@@ -26,8 +26,8 @@ not the other, or both at the same time.
 
 You can find out how to use and configure each by reading:
 
-  - README.web-rewriter
-  - README.web-splitter
+  - [README.web-rewriter](README.web-rewriter)
+  - [README.web-splitter](/ccontavalli/apache-vhosts-mod-rewrite/blob/master/README.web-splitter)
 
 Setting them up should not require more than 15 minutes.
 
