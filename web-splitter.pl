@@ -113,17 +113,17 @@ use POSIX;
   # cfg_prefix: prefix to use for created log files
   # cfg_suffix: suffix to add to the log files
 my ($cfg_logdir, $cfg_maxfd, $cfg_prefix, $cfg_suffix)
-    = ('/opt/sites', 32, 'web-', '.log');
+    = ('/opt/logs', 32, 'web-', '.log');
   # cfg_uid: userid to use to write logs.
   # cfg_gid: group to use to write logs.
-my ($cfg_uid, $cfg_gid, $cfg_dir) = (105, 4, $cfg_logdir);
+my ($cfg_uid, $cfg_gid, $cfg_dir) = (103, 107, $cfg_logdir);
 
   # Example template to keep all the logs for all virtual hosts in the same
   # location.
-#my ($cfg_template) = ('$year/$month/$day/$cfg_prefix$site$cfg_suffix');
+my ($cfg_template) = ('$year/$month/$day/$cfg_prefix$site$cfg_suffix');
 
   # Keeps all the logs in a per site directory.
-my ($cfg_template) = ('$site/logs/$year/$month/$day/$cfg_prefix$site$cfg_suffix');
+#my ($cfg_template) = ('$site/logs/$year/$month/$day/$cfg_prefix$site$cfg_suffix');
 
 openlog('apache-logger', 'pid', 'daemon');
 

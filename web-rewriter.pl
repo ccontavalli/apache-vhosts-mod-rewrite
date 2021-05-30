@@ -123,13 +123,6 @@ Add the following parameters in the httpd.conf file:
 Note that /opt/scripts/ has to be changed with the path where you
 installed the web-rewriter script.
 
-Don't forget to also have a:
-
-   RewriteLock /var/run/apache2/rewrite-lock
-
-to protect apache from sending multiple requests at the same time, and confusing
-the script.
-
 Let's also say you provide an admin interface for each virtual host,
 and this admin interface is reachable by going to:
 
@@ -203,7 +196,7 @@ use POSIX;
 
 my ($cfg_uid, $cfg_gid) = (65534, 65534);
 my ($cfg_debug, $cfg_dir) = (0, '/opt/http');
-my ($cfg_default) = ("www.pigeonair.net");
+my ($cfg_default) = ("www.inscatolati.net");
 
   # Open log file ...
 openlog('apache-rewriter', 'pid', 'daemon');
